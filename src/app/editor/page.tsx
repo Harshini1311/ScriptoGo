@@ -188,13 +188,23 @@ function EditorContent() {
                 }),
             });
             const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.details || data.error || "Action failed");
+            }
+
             if (data.content) {
                 const safeContent = ensureString(data.content);
                 setGeneratedContent(safeContent);
                 showToast(`Action applied: ${action}`, "success");
             }
         } catch (error: any) {
-            showToast(error.message || "Expansion failed", "error");
+            console.error("Action failed", error);
+            if (error.message.toLowerCase().includes("model output") || error.message.toLowerCase().includes("tool calls")) {
+                showToast("AI Throttled: Action skipped for now", "error");
+            } else {
+                showToast(error.message || "Action failed", "error");
+            }
         } finally {
             setLoading(false);
         }
