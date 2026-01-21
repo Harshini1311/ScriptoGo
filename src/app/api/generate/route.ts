@@ -326,11 +326,13 @@ export async function POST(req: Request) {
         let content = "";
 
         if (googleKey) {
+            const trimmedKey = googleKey.trim();
             logger.info("Using Google Gemini for generation");
-            content = await generateWithGemini(combinedPrompt, googleKey);
+            content = await generateWithGemini(combinedPrompt, trimmedKey);
         } else if (openAIKey) {
+            const trimmedKey = openAIKey.trim();
             logger.info("Using OpenAI for generation");
-            const openai = getOpenAIClient(openAIKey);
+            const openai = getOpenAIClient(trimmedKey);
             const completion = await openai.chat.completions.create({
                 messages: [
                     { role: "system", content: systemPrompt },
