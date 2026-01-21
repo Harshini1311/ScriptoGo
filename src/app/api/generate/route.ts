@@ -14,6 +14,8 @@ const getOpenAIClient = (apiKey: string) => {
 
 async function generateWithGemini(prompt: string, apiKey: string) {
     const url = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+    logger.info("Calling Gemini API", { url: url.split('?')[0] });
+
     const response = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -27,8 +29,14 @@ async function generateWithGemini(prompt: string, apiKey: string) {
     });
 
     if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error?.message || "Gemini API Error");
+        const errorText = await response.text();
+        logger.error("Gemini API Error details", { status: response.status, body: errorText });
+        let errorMessage = "Gemini API Error";
+        try {
+            const errorJson = JSON.parse(errorText);
+            errorMessage = errorJson.error?.message || errorMessage;
+        } catch (e) { }
+        throw new Error(errorMessage);
     }
 
     const data = await response.json();
