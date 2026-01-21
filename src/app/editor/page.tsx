@@ -420,6 +420,7 @@ function EditorContent() {
                                 </div>
                                 <h3 className="text-2xl font-bold mb-2">Your Content Suite</h3>
                                 <p className="text-muted-foreground max-w-sm">Configure your script on the left and click Generate to see the magic happen.</p>
+                                <p className="mt-8 text-[10px] uppercase tracking-widest text-muted-foreground/30 font-bold">Build Version: 3.2-Stable-Fallback</p>
                             </div>
                         )}
                     </div>
