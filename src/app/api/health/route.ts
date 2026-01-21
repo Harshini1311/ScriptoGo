@@ -8,14 +8,12 @@ export async function GET() {
     return NextResponse.json({
         status: "alive",
         time: new Date().toISOString(),
-        build_id: "v3-stable-fallback",
+        build_id: "v4.0-nuclear-fallback",
         env: {
             hasSupabaseUrl: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
             hasSupabaseKey: !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
             hasOpenAIKey: !!openAIKey && !openAIKey.startsWith("AIza") && !openAIKey.includes("your-openai"),
             hasGoogleKey: !!googleKey || openAIKey.startsWith("AIza"),
-            googleKeyPrefix: googleKey ? googleKey.substring(0, 4) + "..." : "none",
-            openAIKeyPrefix: openAIKey ? openAIKey.substring(0, 4) + "..." : "none",
         }
     });
 }
