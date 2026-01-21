@@ -214,6 +214,9 @@ function EditorContent() {
                     </Link>
                     <div className="h-4 w-[1px] bg-border" />
                     <h1 className="text-lg font-semibold tracking-tight">Script editor</h1>
+                    <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-bold text-primary animate-pulse">
+                        V4.1-STABLE
+                    </span>
                 </div>
                 <div className="flex items-center gap-3">
                     <button
