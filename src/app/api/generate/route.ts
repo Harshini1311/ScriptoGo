@@ -12,6 +12,29 @@ const getOpenAIClient = (apiKey: string) => {
     return openaiClient;
 };
 
+async function generateWithGemini(prompt: string, apiKey: string) {
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+    const response = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+            contents: [{ parts: [{ text: prompt }] }],
+            generationConfig: {
+                maxOutputTokens: 3000,
+                temperature: 0.7,
+            }
+        })
+    });
+
+    if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error?.message || "Gemini API Error");
+    }
+
+    const data = await response.json();
+    return data.candidates?.[0]?.content?.parts?.[0]?.text || "No content generated";
+}
+
 // Premium Demo Examples (Golden Examples)
 const GOLDEN_EXAMPLES: Record<string, string> = {
     "day in the life of an ai workflow developer": `
@@ -247,31 +270,44 @@ export async function POST(req: Request) {
 
         logger.info(`Generating content for ${platform}`, { topic, tone });
 
-        const isDemoKey = !process.env.OPENAI_API_KEY ||
-            process.env.OPENAI_API_KEY === "your-openai-api-key" ||
-            process.env.OPENAI_API_KEY.includes("your-openai");
+        const googleKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY ||
+            (process.env.OPENAI_API_KEY?.startsWith("AIza") ? process.env.OPENAI_API_KEY : null);
+        const openAIKey = process.env.OPENAI_API_KEY && !process.env.OPENAI_API_KEY.startsWith("AIza") ? process.env.OPENAI_API_KEY : null;
 
-        if (isDemoKey) {
+        const isDemo = (!googleKey && !openAIKey) ||
+            (openAIKey === "your-openai-api-key") ||
+            (openAIKey?.includes("your-openai"));
+
+        if (isDemo) {
             logger.warn(`Using demo mode (Language: ${language}, Duration: ${body.duration})`);
             const content = getDemoContent(topic, platform, language, body.duration);
             return NextResponse.json({ content });
         }
 
-        const openai = getOpenAIClient(process.env.OPENAI_API_KEY!);
         const systemPrompt = assembleSystemPrompt({ platform, topic, tone, language, framework, audience, duration: body.duration });
         const userPrompt = assembleUserPrompt({ platform, topic, tone, language, framework, audience, duration: body.duration });
+        const combinedPrompt = `${systemPrompt}\n\nTask: ${userPrompt}`;
 
-        const completion = await openai.chat.completions.create({
-            messages: [
-                { role: "system", content: systemPrompt },
-                { role: "user", content: userPrompt },
-            ],
-            model: "gpt-4o-mini",
-            max_tokens: 3000,
-            temperature: 0.7,
-        });
+        let content = "";
 
-        const content = completion.choices[0].message.content;
+        if (googleKey) {
+            logger.info("Using Google Gemini for generation");
+            content = await generateWithGemini(combinedPrompt, googleKey);
+        } else if (openAIKey) {
+            logger.info("Using OpenAI for generation");
+            const openai = getOpenAIClient(openAIKey);
+            const completion = await openai.chat.completions.create({
+                messages: [
+                    { role: "system", content: systemPrompt },
+                    { role: "user", content: userPrompt },
+                ],
+                model: "gpt-4o-mini",
+                max_tokens: 3000,
+                temperature: 0.7,
+            });
+            content = completion.choices[0].message.content || "";
+        }
+
         logger.info("Content generation successful");
 
         return NextResponse.json({ content });
