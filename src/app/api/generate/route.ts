@@ -270,10 +270,20 @@ export async function POST(req: Request) {
 
         return NextResponse.json({ content });
     } catch (error: any) {
-        logger.error("OpenAI API Error:", error.message);
+        console.error("GENERATION_ERROR:", error);
+
+        const details = error.response?.data?.error?.message || error.message || "Unknown Error";
+        const status = error.status || error.response?.status || 500;
+
+        logger.error(`Generation Failed: ${details}`);
+
         return NextResponse.json(
-            { error: "Generation Failed", details: error.message || "Internal Server Error" },
-            { status: 500 }
+            {
+                error: "Generation Failed",
+                details: details,
+                code: error.code || "UNKNOWN_ERROR"
+            },
+            { status: status }
         );
     }
 }
