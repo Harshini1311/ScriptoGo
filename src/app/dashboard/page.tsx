@@ -34,6 +34,7 @@ export default function DashboardPage() {
     useEffect(() => {
         fetchScripts();
         checkLocalBackups();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     const checkLocalBackups = () => {
