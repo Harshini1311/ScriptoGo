@@ -3,9 +3,14 @@ import OpenAI from "openai";
 import { logger } from "@/lib/logger";
 import { assembleSystemPrompt, assembleUserPrompt } from "@/lib/prompts";
 
-const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY,
-});
+// Initialized lazily inside POST to prevent build-time failures if key is missing
+let openaiClient: OpenAI | null = null;
+const getOpenAIClient = (apiKey: string) => {
+    if (!openaiClient) {
+        openaiClient = new OpenAI({ apiKey });
+    }
+    return openaiClient;
+};
 
 // Premium Demo Examples (Golden Examples)
 const GOLDEN_EXAMPLES: Record<string, string> = {
@@ -252,6 +257,7 @@ export async function POST(req: Request) {
             return NextResponse.json({ content });
         }
 
+        const openai = getOpenAIClient(process.env.OPENAI_API_KEY!);
         const systemPrompt = assembleSystemPrompt({ platform, topic, tone, language, framework, audience, duration: body.duration });
         const userPrompt = assembleUserPrompt({ platform, topic, tone, language, framework, audience, duration: body.duration });
 
