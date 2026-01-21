@@ -197,7 +197,7 @@ export default function Home() {
                             <div className="p-8 space-y-6 font-mono text-sm leading-relaxed">
                                 <div className="space-y-3">
                                     <div className="text-primary font-bold text-[10px] uppercase tracking-wider opacity-60">01 // THE HOOK</div>
-                                    <div className="p-5 rounded-md border border-primary/20 bg-primary/5 italic text-foreground/90">"Most creators are missing 80% of their potential reach. Here is why."</div>
+                                    <div className="p-5 rounded-md border border-primary/20 bg-primary/5 italic text-foreground/90">&quot;Most creators are missing 80% of their potential reach. Here is why.&quot;</div>
                                 </div>
                                 <div className="space-y-3 opacity-40">
                                     <div className="text-muted-foreground font-bold text-[10px] uppercase tracking-wider">02 // THE BRIDGE</div>
@@ -280,7 +280,7 @@ export default function Home() {
                                 <h4 className="text-[10px] uppercase font-bold tracking-widest text-primary/80">Execution Example</h4>
                                 <div className="p-6 rounded-md border border-border bg-secondary/30 font-mono text-sm leading-relaxed italic text-muted-foreground/90 relative overflow-hidden">
                                     <div className="absolute top-0 left-0 w-1 h-full bg-primary/20" />
-                                    "{selectedFramework?.example}"
+                                    &quot;{selectedFramework?.example}&quot;
                                 </div>
                             </div>
                         </div>
