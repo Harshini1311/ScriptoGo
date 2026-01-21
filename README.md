@@ -42,6 +42,10 @@ Tech Stack
 
 ---
 
+You can try ScriptoGo live here: [[https://scriptgoo.netlify.app/](https://scriptgoo.netlify.app/)]
+
+---
+
 Project Structure
 
 ```text
