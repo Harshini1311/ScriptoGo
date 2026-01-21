@@ -260,7 +260,9 @@ export async function POST(req: Request) {
                 { role: "system", content: systemPrompt },
                 { role: "user", content: userPrompt },
             ],
-            model: "gpt-3.5-turbo",
+            model: "gpt-4o-mini",
+            max_tokens: 3000,
+            temperature: 0.7,
         });
 
         const content = completion.choices[0].message.content;

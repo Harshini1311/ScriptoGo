@@ -101,6 +101,14 @@ export default function EditScriptPage({ params }: { params: { id: string } }) {
                 body: JSON.stringify(config),
             });
             const data = await response.json();
+
+            if (!response.ok) {
+                if (response.status === 504 || response.status === 502) {
+                    throw new Error("Generation timed out. This often happens with 'Long' scripts on free hosting. Try 'Standard' length or a simpler topic.");
+                }
+                throw new Error(data.details || data.error || "Failed to generate");
+            }
+
             if (data.content) {
                 setGeneratedContent(ensureString(data.content));
                 setIsTyping(true);

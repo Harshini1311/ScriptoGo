@@ -47,7 +47,7 @@ export default function OnboardingTip() {
                         </div>
 
                         <p className="text-sm leading-relaxed text-muted-foreground/90 font-medium italic">
-                            &quot;ScriptGo is a focused workspace that replaces scattered notes, spreadsheets, and multiple apps for planning, scripting, and publishing creator content.&quot;
+                            "ScriptGo is a focused workspace that replaces scattered notes, spreadsheets, and multiple apps for planning, scripting, and publishing creator content."
                         </p>
 
                         <button

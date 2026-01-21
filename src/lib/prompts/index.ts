@@ -83,7 +83,7 @@ export function assembleUserPrompt(config: PromptConfig): string {
     if (duration === "short") {
         lengthInstruction = "Aim for 200-300 words. Be punchy and fast-paced.";
     } else if (duration === "long") {
-        lengthInstruction = "Aim for 1800-2500 words. This is a deep-dive 10-15 minute video. Provide extensive examples, detailed explanations for every point, and clear 'thinking' segments. DO NOT be concise.";
+        lengthInstruction = "Aim for 1200-1500 words. This is a deep-dive video. Provide extensive examples, detailed explanations for every point, and clear 'thinking' segments. DO NOT be concise.";
     }
 
     return `Topic: ${config.topic}

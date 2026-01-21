@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import {
@@ -31,16 +31,21 @@ export default function DashboardPage() {
     const [searchQuery, setSearchQuery] = useState("");
     const [localBackups, setLocalBackups] = useState<any[]>([]);
 
-    const checkLocalBackups = useCallback(() => {
+    useEffect(() => {
+        fetchScripts();
+        checkLocalBackups();
+    }, []);
+
+    const checkLocalBackups = () => {
         try {
             const backups = JSON.parse(localStorage.getItem("scriptgo_backups") || "[]");
             setLocalBackups(backups);
         } catch (e) {
             console.error("Failed to load local backups", e);
         }
-    }, []);
+    };
 
-    const fetchScripts = useCallback(async () => {
+    const fetchScripts = async () => {
         try {
             setLoading(true);
             const { data: { user }, error: authError } = await supabase.auth.getUser();
@@ -65,12 +70,7 @@ export default function DashboardPage() {
         } finally {
             setLoading(false);
         }
-    }, [supabase, router]);
-
-    useEffect(() => {
-        fetchScripts();
-        checkLocalBackups();
-    }, [fetchScripts, checkLocalBackups]);
+    };
 
     const renderContent = (content: any) => {
         if (!content) return "No content generated yet.";
