@@ -13,61 +13,48 @@ const getOpenAIClient = (apiKey: string) => {
 };
 
 async function generateWithGemini(prompt: string, apiKey: string) {
-    // Standard models to try in order of preference
-    const models = [
-        "gemini-1.5-flash",
-        "gemini-1.5-flash-latest",
-        "gemini-1.5-pro",
-        "gemini-1.5-pro-latest",
-        "gemini-pro"
+    const configs = [
+        { version: "v1", model: "gemini-1.5-flash" },
+        { version: "v1", model: "gemini-pro" },
+        { version: "v1beta", model: "gemini-1.5-flash" }
     ];
 
-    // Some regions/keys only work with v1beta, others v1
-    const versions = ["v1", "v1beta"];
     let lastError = "";
 
-    for (const version of versions) {
-        for (const model of models) {
-            try {
-                const url = `https://generativelanguage.googleapis.com/${version}/models/${model}:generateContent`;
+    for (const config of configs) {
+        try {
+            const url = `https://generativelanguage.googleapis.com/${config.version}/models/${config.model}:generateContent`;
 
-                const response = await fetch(url, {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                        "x-goog-api-key": apiKey
-                    },
-                    body: JSON.stringify({
-                        contents: [{ parts: [{ text: prompt }] }],
-                        generationConfig: {
-                            maxOutputTokens: 3000,
-                            temperature: 0.7,
-                        }
-                    })
-                });
-
-                const data = await response.json();
-
-                if (response.ok) {
-                    return data.candidates?.[0]?.content?.parts?.[0]?.text || "No content generated";
-                } else {
-                    lastError = data.error?.message || `HTTP ${response.status}`;
-                    logger.warn(`Gemini ${version}/${model} failed: ${lastError}`);
-
-                    // If the project doesn't have the API enabled, we should stop and tell the user
-                    if (lastError.toLowerCase().includes("not enabled")) {
-                        throw new Error(`API Not Enabled: Please visit Google Cloud Console or AI Studio and enable the 'Generative Language API' for this project.`);
+            const response = await fetch(url, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "x-goog-api-key": apiKey
+                },
+                body: JSON.stringify({
+                    contents: [{ parts: [{ text: prompt }] }],
+                    generationConfig: {
+                        maxOutputTokens: 3000,
+                        temperature: 0.7,
                     }
-                }
-            } catch (e: any) {
-                if (e.message.includes("API Not Enabled")) throw e;
-                lastError = e.message;
-                logger.warn(`Fetch error for ${version}/${model}: ${lastError}`);
+                })
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                return data.candidates?.[0]?.content?.parts?.[0]?.text || "No content generated";
+            } else {
+                lastError = data.error?.message || `HTTP ${response.status}`;
+                logger.warn(`Gemini ${config.version}/${config.model} failed: ${lastError}`);
             }
+        } catch (e: any) {
+            lastError = e.message;
+            logger.warn(`Fetch error for ${config.version}/${config.model}: ${lastError}`);
         }
     }
 
-    throw new Error(`Gemini API Error (Tried all versions/models): ${lastError}. Make sure the 'Generative Language API' is enabled in your Google AI Studio project.`);
+    throw new Error(lastError);
 }
 
 // Premium Demo Examples (Golden Examples)
@@ -325,24 +312,35 @@ export async function POST(req: Request) {
 
         let content = "";
 
-        if (googleKey) {
-            const trimmedKey = googleKey.trim();
-            logger.info("Using Google Gemini for generation");
-            content = await generateWithGemini(combinedPrompt, trimmedKey);
-        } else if (openAIKey) {
-            const trimmedKey = openAIKey.trim();
-            logger.info("Using OpenAI for generation");
-            const openai = getOpenAIClient(trimmedKey);
-            const completion = await openai.chat.completions.create({
-                messages: [
-                    { role: "system", content: systemPrompt },
-                    { role: "user", content: userPrompt },
-                ],
-                model: "gpt-4o-mini",
-                max_tokens: 3000,
-                temperature: 0.7,
+        try {
+            if (googleKey) {
+                const trimmedKey = googleKey.trim();
+                logger.info("Using Google Gemini for generation");
+                content = await generateWithGemini(combinedPrompt, trimmedKey);
+            } else if (openAIKey) {
+                const trimmedKey = openAIKey.trim();
+                logger.info("Using OpenAI for generation");
+                const openai = getOpenAIClient(trimmedKey);
+                const completion = await openai.chat.completions.create({
+                    messages: [
+                        { role: "system", content: systemPrompt },
+                        { role: "user", content: userPrompt },
+                    ],
+                    model: "gpt-4o-mini",
+                    max_tokens: 3000,
+                    temperature: 0.7,
+                });
+                content = completion.choices[0].message.content || "";
+            }
+        } catch (aiError: any) {
+            logger.error("AI Generation failed, falling back to Demo Mode", { error: aiError.message });
+            // Automatic fallback to demo mode so the user isn't blocked by API errors
+            const demoContent = getDemoContent(topic, platform, language, body.duration);
+            return NextResponse.json({
+                content: demoContent,
+                isDemo: true,
+                warning: `AI Service temporarily unavailable: ${aiError.message}. Using high-quality template instead.`
             });
-            content = completion.choices[0].message.content || "";
         }
 
         logger.info("Content generation successful");
@@ -351,16 +349,15 @@ export async function POST(req: Request) {
     } catch (error: any) {
         console.error("GENERATION_ERROR:", error);
 
-        const details = error.response?.data?.error?.message || error.message || "Unknown Error";
-        const status = error.status || error.response?.status || 500;
+        const details = error.message || "Unknown Error";
+        const status = 500;
 
-        logger.error(`Generation Failed: ${details}`);
+        logger.error(`Critical Generation Failure: ${details}`);
 
         return NextResponse.json(
             {
                 error: "Generation Failed",
                 details: details,
-                code: error.code || "UNKNOWN_ERROR"
             },
             { status: status }
         );
