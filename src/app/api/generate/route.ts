@@ -13,40 +13,42 @@ const getOpenAIClient = (apiKey: string) => {
 };
 
 async function generateWithGemini(prompt: string, apiKey: string) {
-    // Try v1 stable instead of v1beta
-    const models = ["gemini-1.5-flash", "gemini-1.5-flash-latest", "gemini-pro"];
+    const versions = ["v1", "v1beta"];
+    const models = ["gemini-1.5-flash", "gemini-1.5-flash-latest", "gemini-pro", "gemini-1.5-pro"];
     let lastError = "";
 
-    for (const model of models) {
-        try {
-            const url = `https://generativelanguage.googleapis.com/v1/models/${model}:generateContent?key=${apiKey}`;
-            const response = await fetch(url, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    contents: [{ parts: [{ text: prompt }] }],
-                    generationConfig: {
-                        maxOutputTokens: 3000,
-                        temperature: 0.7,
-                    }
-                })
-            });
+    for (const version of versions) {
+        for (const model of models) {
+            try {
+                const url = `https://generativelanguage.googleapis.com/${version}/models/${model}:generateContent?key=${apiKey}`;
+                const response = await fetch(url, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        contents: [{ parts: [{ text: prompt }] }],
+                        generationConfig: {
+                            maxOutputTokens: 3000,
+                            temperature: 0.7,
+                        }
+                    })
+                });
 
-            if (response.ok) {
-                const data = await response.json();
-                return data.candidates?.[0]?.content?.parts?.[0]?.text || "No content generated";
-            } else {
-                const error = await response.json();
-                lastError = error.error?.message || `HTTP ${response.status}`;
-                logger.warn(`Gemini model ${model} failed, trying next: ${lastError}`);
+                if (response.ok) {
+                    const data = await response.json();
+                    return data.candidates?.[0]?.content?.parts?.[0]?.text || "No content generated";
+                } else {
+                    const error = await response.json();
+                    lastError = error.error?.message || `HTTP ${response.status}`;
+                    logger.warn(`Gemini ${version}/${model} failed: ${lastError}`);
+                }
+            } catch (e: any) {
+                lastError = e.message;
+                logger.warn(`Fetch error for ${version}/${model}: ${lastError}`);
             }
-        } catch (e: any) {
-            lastError = e.message;
-            logger.warn(`Fetch error for Gemini model ${model}: ${lastError}`);
         }
     }
 
-    throw new Error(`Gemini API Error (Tried all models): ${lastError}`);
+    throw new Error(`Gemini API Error (Exhausted all options): ${lastError}`);
 }
 
 // Premium Demo Examples (Golden Examples)
