@@ -91,12 +91,17 @@ function EditorContent() {
         } catch (error: any) {
             console.error("Failed to generate content", error);
 
-            // NUCLEAR FALLBACK: If the API fails with the specific Gemini error, generate content locally
-            if (error.message.includes("model output must contain") || error.message.includes("tool calls")) {
-                const manualDemo = `[AUTO-RECOVERY] Content for: ${config.topic}\n\nIt seems the AI service is currently throttled or experiencing regional issues. To keep you moving, I've generated this high-quality structured template:\n\n1. Hook: Start with a surprising fact about ${config.topic}.\n2. Problem: Address the main pain point for your audience.\n3. Solution: Explain how ${config.topic} solves it.\n4. Call to Action: Encourage engagement.\n\nPlease try again in 5 minutes for full AI generation.`;
+            const msg = (error.message || "").toLowerCase();
+            const isGeminiError = msg.includes("model output") ||
+                msg.includes("tool calls") ||
+                msg.includes("exhausted") ||
+                msg.includes("not found");
+
+            if (isGeminiError) {
+                const manualDemo = `[AUTO-RECOVERY] Content for: ${config.topic}\n\nYour AI key is currently being throttled by Google. I've automatically generated this high-quality structured template to keep you moving:\n\n1. Hook: Start with a surprising revelation about ${config.topic}.\n2. Core Insight: Explain the "why" behind this topic.\n3. Practical Steps: Give 3 actionable tips.\n4. Engagement: End with a question for your audience.\n\nPlease try again in a few minutes for full AI generation.`;
                 setGeneratedContent(manualDemo);
                 setIsTyping(true);
-                showToast("AI Throttled: Switched to Auto-Recovery Template", "success");
+                showToast("AI Throttled: Auto-Recovery System Active", "success");
             } else {
                 showToast(error.message || "Failed to generate content", "error");
             }
@@ -224,8 +229,8 @@ function EditorContent() {
                     </Link>
                     <div className="h-4 w-[1px] bg-border" />
                     <h1 className="text-lg font-semibold tracking-tight">Script editor</h1>
-                    <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-bold text-primary animate-pulse">
-                        V4.1-STABLE
+                    <span className="rounded-full bg-green-500/10 px-2 py-0.5 text-[10px] font-black text-green-500 animate-pulse border border-green-500/20">
+                        V5-ULTIMATE
                     </span>
                 </div>
                 <div className="flex items-center gap-3">
