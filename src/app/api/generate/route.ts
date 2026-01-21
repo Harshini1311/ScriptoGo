@@ -13,17 +13,30 @@ const getOpenAIClient = (apiKey: string) => {
 };
 
 async function generateWithGemini(prompt: string, apiKey: string) {
+    // Standard models to try in order of preference
+    const models = [
+        "gemini-1.5-flash",
+        "gemini-1.5-flash-latest",
+        "gemini-1.5-pro",
+        "gemini-1.5-pro-latest",
+        "gemini-pro"
+    ];
+
+    // Some regions/keys only work with v1beta, others v1
     const versions = ["v1", "v1beta"];
-    const models = ["gemini-1.5-flash", "gemini-1.5-flash-latest", "gemini-pro", "gemini-1.5-pro"];
     let lastError = "";
 
     for (const version of versions) {
         for (const model of models) {
             try {
-                const url = `https://generativelanguage.googleapis.com/${version}/models/${model}:generateContent?key=${apiKey}`;
+                const url = `https://generativelanguage.googleapis.com/${version}/models/${model}:generateContent`;
+
                 const response = await fetch(url, {
                     method: "POST",
-                    headers: { "Content-Type": "application/json" },
+                    headers: {
+                        "Content-Type": "application/json",
+                        "x-goog-api-key": apiKey
+                    },
                     body: JSON.stringify({
                         contents: [{ parts: [{ text: prompt }] }],
                         generationConfig: {
@@ -33,22 +46,28 @@ async function generateWithGemini(prompt: string, apiKey: string) {
                     })
                 });
 
+                const data = await response.json();
+
                 if (response.ok) {
-                    const data = await response.json();
                     return data.candidates?.[0]?.content?.parts?.[0]?.text || "No content generated";
                 } else {
-                    const error = await response.json();
-                    lastError = error.error?.message || `HTTP ${response.status}`;
+                    lastError = data.error?.message || `HTTP ${response.status}`;
                     logger.warn(`Gemini ${version}/${model} failed: ${lastError}`);
+
+                    // If the project doesn't have the API enabled, we should stop and tell the user
+                    if (lastError.toLowerCase().includes("not enabled")) {
+                        throw new Error(`API Not Enabled: Please visit Google Cloud Console or AI Studio and enable the 'Generative Language API' for this project.`);
+                    }
                 }
             } catch (e: any) {
+                if (e.message.includes("API Not Enabled")) throw e;
                 lastError = e.message;
                 logger.warn(`Fetch error for ${version}/${model}: ${lastError}`);
             }
         }
     }
 
-    throw new Error(`Gemini API Error (Exhausted all options): ${lastError}`);
+    throw new Error(`Gemini API Error (Tried all versions/models): ${lastError}. Make sure the 'Generative Language API' is enabled in your Google AI Studio project.`);
 }
 
 // Premium Demo Examples (Golden Examples)
